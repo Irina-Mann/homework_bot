@@ -11,7 +11,7 @@ from exceptions import ResponceError, TokenNoneError
 
 load_dotenv()
 
- 
+
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
@@ -36,7 +36,7 @@ logging.basicConfig(
 
 
 def check_tokens():
-    '''Проверка наличия переменных окружения'''
+    """Проверка наличия переменных окружения."""
     params = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
     for param in params:
         if param is None:
@@ -45,9 +45,8 @@ def check_tokens():
         return True
 
 
-
 def send_message(bot, message):
-    '''Отправка сообщений в Telegram чат'''
+    """Отправка сообщений в Telegram чат."""
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logging.debug(f'Бот отправил сообщение: {message}')
@@ -55,9 +54,8 @@ def send_message(bot, message):
         logging.error(f'Сбой при отправке сообщения в Telegram: {error}')
 
 
-
 def get_api_answer(timestamp):
-    '''Отправка запроса к API Практикума'''
+    """Отправка запроса к API Практикума."""
     payload = {'from_date': timestamp}
     try:
         responce = requests.get(ENDPOINT, headers=HEADERS, params=payload)
@@ -66,21 +64,20 @@ def get_api_answer(timestamp):
         logging.error(error_msg)
         raise ResponceError(error_msg)
     if responce.status_code == 400:
-        logging.error(f'Неверный параметр from_date')
+        logging.error('Неверный параметр from_date')
         raise ResponceError()
     elif responce.status_code == 401:
-        logging.error(f'Запрос содержал некорректный токен')
+        logging.error('Запрос содержал некорректный токен')
         raise ResponceError()
     elif responce.status_code != 200:
-        logging.error(f'Сбой при запросе к эндпоинту Практикума')
+        logging.error('Сбой при запросе к эндпоинту Практикума')
         raise ResponceError()
     else:
         return responce.json()
-    
 
 
 def check_response(response):
-    '''Проверка ответа API на соответствие документации'''
+    """Проверка ответа API на соответствие документации."""
     if not isinstance(response, dict):
         logging.error('Данные ответа API Практикума не являются словарем')
         raise TypeError(f'Тип ответа API Практикума: {type(response)}')
@@ -92,7 +89,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    '''Извлечение статуса домашней работы'''
+    """Извлечение статуса домашней работы."""
     status = homework.get('status')
     if status is None:
         logging.error('Отсутствует значение "status"')
@@ -104,7 +101,7 @@ def parse_status(homework):
     if homework_name is None:
         logging.error('Отсутствует значение "homework_name"')
         raise ValueError()
-    verdict = HOMEWORK_VERDICTS.get(status)    
+    verdict = HOMEWORK_VERDICTS.get(status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -129,6 +126,7 @@ def main():
             send_message(bot, message)
             logging.critical(message)
         time.sleep(RETRY_PERIOD)
+
 
 if __name__ == '__main__':
     main()
