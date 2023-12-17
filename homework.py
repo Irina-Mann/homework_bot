@@ -84,8 +84,7 @@ def check_response(response):
     homeworks = response.get("homeworks")
     if not isinstance(homeworks, list):
         raise TypeError('Ответ API под ключом "homeworks" не является списком')
-    homework = response.get("homeworks")[0]
-    return homework
+    return homeworks
 
 
 def parse_status(homework):
@@ -115,12 +114,13 @@ def main():
     while True:
         try:
             response = get_api_answer(timestamp)
-            homework = check_response(response)
-            message = parse_status(homework)
-            if homework.get('status') != for_now_status:
-                send_message(bot, message)
-                for_now_status = homework.get('status')
-            logging.debug('Изменений в статусе домашней работы нет')
+            homeworks = check_response(response)
+            for homework in homeworks:
+                message = parse_status(homework)
+                if homework.get('status') != for_now_status:
+                    send_message(bot, message)
+                    for_now_status = homework.get('status')
+                logging.debug('Изменений в статусе домашней работы нет')
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
