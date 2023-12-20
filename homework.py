@@ -7,7 +7,7 @@ import time
 
 from dotenv import load_dotenv
 
-from exceptions import ResponceError, TokenNoneError
+from exceptions import ResponseError, TokenNoneError
 
 from http import HTTPStatus
 
@@ -40,10 +40,9 @@ logging.basicConfig(
 def check_tokens():
     """Проверка наличия переменных окружения."""
     params = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
-    if all(params) is False:
+    if not all(params):
         logging.critical('Переменная окружения недоступна')
-        raise TokenNoneError('Переменная окружения недоступна')
-    return True
+        raise TokenNoneError()
 
 
 def send_message(bot, message):
@@ -61,9 +60,9 @@ def get_api_answer(current_timestamp):
     try:
         responce = requests.get(ENDPOINT, headers=HEADERS, params=payload)
     except requests.exceptions.RequestException:
-        raise ResponceError('Эндпоинт Практикума недоступен')
+        raise ResponseError('Эндпоинт Практикума недоступен')
     if responce.status_code != HTTPStatus.OK:
-        raise ResponceError('Сбой при запросе к эндпоинту Практикума')
+        raise ResponseError('Сбой при запросе к эндпоинту Практикума')
     return responce.json()
 
 
@@ -71,21 +70,19 @@ def check_response(response):
     """Проверка ответа API на соответствие документации."""
     if not isinstance(response, dict):
         raise TypeError(f'Тип ответа API Практикума: {type(response)}')
-    homeworks = response.get("homeworks")
+    homeworks = response.get('homeworks')
     if not isinstance(homeworks, list):
         raise TypeError('Ответ API под ключом "homeworks" не является списком')
-    homework = homeworks[0]
-    return homework
+    return homeworks
 
 
 def parse_status(homework):
     """Извлечение статуса домашней работы."""
     if (status := homework.get('status')) is None:
         raise ValueError('Отсутствует значение status')
-    elif status not in HOMEWORK_VERDICTS:
+    if status not in HOMEWORK_VERDICTS:
         raise ValueError('Недокументированный статус домашней работы')
-    homework_name = homework.get('homework_name')
-    if homework_name is None:
+    if (homework_name := homework.get('homework_name')) is None:
         raise ValueError('Отсутствует значение homework_name')
     verdict = HOMEWORK_VERDICTS.get(status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -93,19 +90,18 @@ def parse_status(homework):
 
 def main():
     """Основная логика работы бота."""
-    if not check_tokens():
-        exit()
+    check_tokens()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = 0
-    last_status = ''
+    last_message = ''
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            homework = check_response(response)
+            homework = check_response(response)[0]
             message = parse_status(homework)
-            if homework.get('status') != last_status:
+            if message != last_message:
                 send_message(bot, message)
-                last_status = homework.get('status')
+                last_message = message
             else:
                 logging.debug('Изменений в статусе домашней работы нет')
             current_timestamp = response.get('current_date')

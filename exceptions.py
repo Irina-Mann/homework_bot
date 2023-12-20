@@ -2,5 +2,5 @@ class TokenNoneError(Exception):
     """Переменная окружения недоступна."""
 
 
-class ResponceError(Exception):
+class ResponseError(Exception):
     """Эндпоинт Практикума недоступен."""
